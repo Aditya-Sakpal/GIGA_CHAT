@@ -7,8 +7,6 @@ const { createServer } = require('http');
 const { httpServer } = require('http').createServer()
 const mongoose = require('mongoose');
 const { Schema } = require('mongoose')
-const dotenv = require('dotenv');
-dotenv.config({ path: '../.env' });
 
 const { NEXT_PUBLIC_MONGO_URL } = process.env;
 
