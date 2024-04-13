@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
-import dotenv from 'dotenv';
-dotenv.config({ path: '../.env' });
+
 
 const { NEXT_PUBLIC_MONGO_URL }: { NEXT_PUBLIC_MONGO_URL?: string | undefined } = process.env as { NEXT_PUBLIC_MONGO_URL?: string | undefined };
 
