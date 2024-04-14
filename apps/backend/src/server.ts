@@ -275,13 +275,6 @@ app.post("/getGroupChats", async (req: Request, res: Response) => {
   } catch (e) { console.log(e) }
 })
 
-app.use(express.static(path.join(__dirname, '..', 'public')));
-
-
-const uploadFile = multer({ dest: 'public/audio' });
-
-app.use(express.static(path.join(__dirname, 'public')));
-
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
