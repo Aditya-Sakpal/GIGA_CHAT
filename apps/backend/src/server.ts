@@ -276,7 +276,6 @@ app.post("/getGroupChats", async (req: Request, res: Response) => {
 })
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
-const uploadFile = multer({ dest: '../tmp/audio' });
 app.use(express.static(path.join(__dirname, 'public')));
 
 
