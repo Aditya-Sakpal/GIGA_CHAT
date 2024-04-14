@@ -92,6 +92,113 @@ app.post('/login', async (req: Request, res: Response) => {
   }
 })
 
+
+app.post('/enterDetails', async (req: Request, res: Response) => {
+  try {
+    // console.log(req.body, "req.body")
+
+    const { name, username, phone, email, password, provider } = req.body;
+    await connect()
+
+    const hashedPassword = await bcrypt.hash(password, 5);
+    const user = new User({ email, password: hashedPassword, name, username, phoneno: phone, provider })
+    await user.save();
+
+    return res.status(200).json({ message: "User has been registered" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+})
+
+app.post('/getUsernames', async (req: Request, res: Response) => {
+  try {
+    // console.log(req.body, "req.body")
+    await connect()
+    const usernames = await User.find({});
+    const currentUser = usernames.filter((user) => user.email === req.body.email);
+    const selectedUsers = await SelectedUsers.find({ username: currentUser[0]?.username });
+    const filteredSelectedUsers = selectedUsers[0]?.selectedUsers.filter(user => !user.isArchived);
+    const onlineUsers = await OnlineUser.findOne({});
+    const onlineUsersArray = onlineUsers?.onlineUsers || [];
+    return res.status(200).json({ usernames: usernames, selectedUsers: filteredSelectedUsers, currentUser: currentUser[0], onlineUsers: onlineUsersArray });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+app.post('/addUserInSelectedUsers', async (req: Request, res: Response) => {
+  try {
+    const { email, selectedUser, roomId } = req.body;
+    await connect();
+    const user = await User.findOne({ email });
+
+    let selectedUserDoc = await SelectedUsers.findOne({ username: user?.username });
+    let selectedRecipientDoc = await SelectedUsers.findOne({ username: selectedUser?.username });
+
+    if (!selectedUserDoc) {
+      const initializedSelectedUser = {
+        ...selectedUser,
+        roomId: roomId,
+        chats: []
+      };
+
+      selectedUserDoc = new SelectedUsers({
+        username: user?.username,
+        selectedUsers: [initializedSelectedUser]
+      });
+      await selectedUserDoc.save();
+    } else if (selectedUserDoc) {
+      if (selectedUserDoc?.selectedUsers?.some(userObj => userObj.username === selectedUser.username)) {
+        const existingUserRecord = selectedUserDoc?.selectedUsers.find(user => user.username === selectedUser.username);
+        return res.status(400).json({
+          message: 'Selected user is already present in the list.',
+          existingUserRecord: existingUserRecord,
+        });
+      } else {
+        const userWithRoomId = { ...selectedUser, isArchived: false, roomId: roomId };
+        selectedUserDoc.selectedUsers.push(userWithRoomId);
+        await selectedUserDoc.save();
+      }
+    }
+
+    if (!selectedRecipientDoc) {
+      const initializedSelectedRecipient = {
+        username: user?.username,
+        roomId: roomId,
+        chats: []
+      };
+
+      selectedRecipientDoc = new SelectedUsers({
+        username: selectedUser?.username,
+        selectedUsers: [initializedSelectedRecipient]
+      });
+
+      await selectedRecipientDoc.save();
+    } else if (selectedRecipientDoc) {
+      let existingUserRecord = selectedRecipientDoc?.selectedUsers.find(currentuser => currentuser.username === user?.username);
+      if (existingUserRecord) {
+        existingUserRecord.roomId = roomId;
+        await selectedRecipientDoc.save();
+        return res.status(200).json({ message: 'User added to the selected users list successfully.' });
+      }
+      else {
+        const userWithRoomId = { ...user?.toObject(), isArchived: false, roomId: roomId };
+        selectedRecipientDoc.selectedUsers.push(userWithRoomId);
+        await selectedRecipientDoc.save();
+        return res.status(200).json({ message: 'User added to the selected users list successfully.' });
+
+      }
+    }
+  }
+  catch (error) {
+    console.error('Error adding user to selected users list:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+})
+
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
