@@ -199,6 +199,83 @@ app.post('/addUserInSelectedUsers', async (req: Request, res: Response) => {
   }
 })
 
+app.post("/addChat", async (req: Request, res: Response) => {
+  try {
+    await connect();
+    const { message, room_Id, email, selectedUserName } = req.body;
+    const currentUserEmail = await User.findOne({ email: email });
+    const currentUser = await SelectedUsers.findOne({ username: currentUserEmail?.username });
+    const receipentUser = await SelectedUsers.findOne({ username: selectedUserName });
+    if (!currentUser || !receipentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+
+    let currentUserSelectedUser
+    let receipentUserSelectedUser
+    if (currentUser.selectedUsers) {
+      currentUserSelectedUser = currentUser?.selectedUsers.find(user => user.roomId == room_Id);
+      // currentUser.selectedUsers.unshift(currentUserSelectedUser);
+    }
+    if (receipentUser.selectedUsers) {
+      receipentUserSelectedUser = receipentUser?.selectedUsers.find(user => user.roomId == room_Id)
+      // receipentUser.selectedUsers.unshift(receipentUserSelectedUser);
+    }
+
+    if (!currentUserSelectedUser || !receipentUserSelectedUser) {
+      return res.status(404).json({ error: 'SelectedUser not found for the specified roomId' })
+    }
+
+    const chatObject = { message, isSender: true };
+    const receipentChatObject = { message, isSender: false };
+    currentUserSelectedUser.lastChatTime = new Date();
+    receipentUserSelectedUser.lastChatTime = new Date();
+    currentUserSelectedUser.chats.unshift(chatObject);
+    receipentUserSelectedUser.chats.unshift(receipentChatObject);
+    // console.log(currentUserSelectedUser, receipentUserSelectedUser, "currentUserSelectedUser, receipentUserSelectedUser")
+
+    await currentUser.save();
+    await receipentUser.save();
+
+    res.status(200).json({ message: 'Chat added successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+})
+
+app.post("/getChats", async (req: Request, res: Response) => {
+  try {
+    await connect();
+    const { currentUser, selectedUser } = req.body;
+    const user = await SelectedUsers.findOne({ username: currentUser });
+    const chats = user?.selectedUsers.find(user => user.username === selectedUser);
+    if (!chats) {
+      return res.status(404).json({ error: 'SelectedUser not found' });
+    }
+    console.log("before pending")
+    chats.pending = 0;
+    console.log("after pending")
+    await user?.save();
+    return res.status(200).json({ chats: chats?.chats, roomId: chats?.roomId, selectedUserPic: chats?.profilePic });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+})
+
+app.post("/getGroupChats", async (req: Request, res: Response) => {
+  try {
+    const { groupName } = req.body;
+    const group = await Group.findOne({ groupName });
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+    return res.status(200).json({ chats: group.messages });
+  } catch (e) { console.log(e) }
+})
+
+
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
