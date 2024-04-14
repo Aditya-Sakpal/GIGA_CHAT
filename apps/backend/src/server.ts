@@ -10,6 +10,8 @@ app.get('/', async (req: Request, res: Response) => {
   res.send('Hello, TypeScript!');
 });
 
+const { NEXT_NODE_MAILER_SECRET }: { NEXT_NODE_MAILER_SECRET?: string | undefined } = process.env as { NEXT_NODE_MAILER_SECRET?: string | undefined };
+
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
