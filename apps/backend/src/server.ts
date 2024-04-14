@@ -276,7 +276,8 @@ app.post("/getGroupChats", async (req: Request, res: Response) => {
 })
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
-const uploadFile = multer();
+const uploadFile =multer({ storage: multer.memoryStorage() });
+
 
 app.use(express.static(path.join(__dirname, 'public')));
 
